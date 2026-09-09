@@ -30,16 +30,17 @@
 </header>
 
 <section class="summary">
-  <div class="card pagu">
+    <div class="card pagu">
     <div class="lbl">Pagu Anggaran <button class="chip" data-edit-only onclick="ubahPagu()">Ubah</button></div>
     <div class="val num" id="vPagu">Rp 0</div>
     <div class="prog"><i id="progBar" style="width:0%"></i></div>
     <div class="prog-lbl" id="progLbl">Terserap 0%</div>
+    <div class="sub"><div class="lbl">Sisa Saldo Bank</div><div class="val num" id="vBank">Rp 0</div></div>
   </div>
   <div class="card in-c">
-    <div class="lbl">Total Pemasukan (Saldo Kas Bendahara)</div>
+    <div class="lbl">Total Pemasukan</div>
     <div class="val num" id="vMasuk">Rp 0</div>
-    <div class="sub"><div class="lbl">Sisa Saldo Bank</div><div class="val num" id="vBank">Rp 0</div></div>
+    <div class="sub"><div class="lbl">Saldo Kas Bendahara</div><div class="val num" id="vKas">Rp 0</div></div>
   </div>
   <div class="card out-c">
     <div class="lbl">Total Pengeluaran</div>

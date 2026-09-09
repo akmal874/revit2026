@@ -50,6 +50,7 @@ function renderSummary(R, p){
   document.getElementById("vKeluar").textContent = rp(R.keluar);
   document.getElementById("vSaldo").textContent = rp(R.saldoAkhir);
   document.getElementById("vBank").textContent = rp(R.sisaBank);
+  document.getElementById("vKas").textContent = rp(R.kasBendahara);
   document.getElementById("vPajak").textContent = rp(R.pajak);
   document.getElementById("vJumlah").textContent = R.jumlah;
   const pct = Math.min(R.serapan,100);

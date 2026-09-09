@@ -69,7 +69,8 @@ function hitungRingkasan(rows, pagu) {
     rows: withSaldo,
     masuk, keluar, pajak,
     saldoAkhir: masuk - keluar,
-    sisaBank: pagu - keluar,
+    sisaBank: pagu - masuk,        // sisa dana di bank = pagu - pemasukan (penarikan)
+    kasBendahara: masuk - keluar,  // saldo kas bendahara = saldo akhir transaksi
     serapan: pagu ? (keluar / pagu) * 100 : 0,
     jumlah: rows.length
   };
