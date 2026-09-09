@@ -305,7 +305,6 @@ window.addEventListener("resize", () => {
   const target = window.innerWidth <= 640 ? 5 : 10;
   if (STATE.perPage !== target) {
     STATE.perPage = target;
-    STATE.page = 1;
     if (STATE.rows.length) renderTable();
   }
 });

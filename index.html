@@ -96,7 +96,14 @@
       <div class="modal-bd">
         <div class="row2">
           <div class="field"><label>Tanggal</label><input type="date" name="tanggal" required></div>
-          <div class="field"><label>Jenis</label><select name="jenis" required><option value="masuk">Pemasukan</option><option value="keluar">Pengeluaran</option></select></div>
+          <div class="field"><label>Jenis</label>
+  <div class="seg">
+    <input type="radio" name="jenis" id="jMasuk" value="masuk" checked>
+    <label for="jMasuk" class="seg-in">Pemasukan</label>
+    <input type="radio" name="jenis" id="jKeluar" value="keluar">
+    <label for="jKeluar" class="seg-out">Pengeluaran</label>
+  </div>
+</div>
         </div>
         <div class="field"><label>Uraian Transaksi</label><input name="uraian" required placeholder="mis. Pembelian semen & pasir"></div>
         <div class="row2">
