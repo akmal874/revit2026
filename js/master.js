@@ -5,7 +5,6 @@
 window.MASTER = {
   // Penanggung jawab
   penanggungJawab: [
-    "Drs. H. Muhammad Nur, M.M.",
     "Akmal Iskandar, S.Pi",
     "Edwar Agus, S.Pd",
     "Zul Fikar, S.Pd",
@@ -14,13 +13,7 @@ window.MASTER = {
   ],
 
   // Daftar toko (bisa ditambah lewat form dengan opsi "+ Toko lain…")
-  toko: [
-    "Toko Kawan Baru",
-    "Sinar Cat",
-    "CV Sewa Alat",
-    "Toko Besi Makmur",
-    "Toko Listrik Terang",
-  ],
+  toko: ["Toko Kawan Baru", "Toko Sinar Jaya", "Toko Cipta Jaya"],
 
   // Jenis pajak: value dipakai sistem, label ditampilkan
   pajak: [
