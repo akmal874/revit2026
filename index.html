@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laporan Dana Revitalisasi SMK 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Wadah laporan cetak (diisi via JS saat cetak) -->
+<div id="printRoot"></div>
+
+<header>
+  <div class="wrap hd-top">
+    <div class="brand">
+      <div class="crest"><img src="assets/logo.png" alt="Logo SMKN 3 Kepulauan Selayar"></div>
+      <div>
+        <h1>Laporan Dana Bantuan Revitalisasi SMK</h1>
+        <p id="sekolahName">Memuat…</p>
+      </div>
+    </div>
+    <div class="hd-right">
+      <span id="authBadge">Tampilan Publik</span>
+      <button id="btnLogin" class="hd-btn">Masuk Pengelola</button>
+      <button id="btnLogout" class="hd-btn" style="display:none">Keluar</button>
+    </div>
+  </div>
+</header>
+
+<section class="summary">
+  <div class="card pagu">
+    <div class="lbl">Pagu Anggaran <button class="chip" data-edit-only onclick="ubahPagu()">Ubah</button></div>
+    <div class="val num" id="vPagu">Rp 0</div>
+    <div class="prog"><i id="progBar" style="width:0%"></i></div>
+    <div class="prog-lbl" id="progLbl">Terserap 0%</div>
+  </div>
+  <div class="card in-c">
+    <div class="lbl">Total Pemasukan (Saldo Kas Bendahara)</div>
+    <div class="val num" id="vMasuk">Rp 0</div>
+    <div class="sub"><div class="lbl">Sisa Saldo Bank</div><div class="val num" id="vBank">Rp 0</div></div>
+  </div>
+  <div class="card out-c">
+    <div class="lbl">Total Pengeluaran</div>
+    <div class="val num" id="vKeluar">Rp 0</div>
+    <div class="sub"><div class="lbl">Pajak Dipungut</div><div class="val num" id="vPajak">Rp 0</div></div>
+  </div>
+  <div class="card bal-c">
+    <div class="lbl">Saldo Akhir</div>
+    <div class="val num" id="vSaldo">Rp 0</div>
+    <div class="sub"><div class="lbl">Total Transaksi</div><div class="val num" id="vJumlah">0</div></div>
+  </div>
+</section>
+
+<div class="toolbar">
+  <select id="selBulan">
+    <option value="all">Semua Bulan</option>
+    <option value="2026-01">Januari 2026</option><option value="2026-02">Februari 2026</option>
+    <option value="2026-03">Maret 2026</option><option value="2026-04">April 2026</option>
+    <option value="2026-05">Mei 2026</option><option value="2026-06">Juni 2026</option>
+    <option value="2026-07">Juli 2026</option><option value="2026-08">Agustus 2026</option>
+    <option value="2026-09">September 2026</option><option value="2026-10">Oktober 2026</option>
+    <option value="2026-11">November 2026</option><option value="2026-12">Desember 2026</option>
+  </select>
+  <input id="inpCari" class="search" placeholder="Cari uraian, toko, penanggung jawab…">
+  <button id="btnExcel" class="btn"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H4zM12 16v4M8 20h8"/></svg> Ekspor Excel</button>
+  <button id="btnCetak" class="btn"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4v-6h16v6h-2M8 14h8v7H8z"/></svg> Cetak</button>
+  <button class="btn btn-primary" data-edit-only onclick="openAdd()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Tambah Transaksi</button>
+</div>
+
+<div class="table-wrap">
+  <div class="tbl-card">
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr>
+          <th>No</th><th>Tanggal</th><th>Uraian Transaksi</th>
+          <th class="r">Pemasukan<span class="th-rp"> (Rp)</span></th><th class="r">Pengeluaran<span class="th-rp"> (Rp)</span></th><th class="r">Saldo<span class="th-rp"> (Rp)</span></th>
+          <th>Pajak</th><th>Nama Toko</th><th>Penanggung Jawab</th><th>Keterangan</th><th>Bukti</th><th>Aksi</th>
+        </tr></thead>
+        <tbody id="tbody"><tr><td colspan="11" class="empty">Memuat data…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="foot"><span id="footInfo">—</span><span>Data tersimpan di Supabase</span></div>
+    <div id="pagination" class="pagination"></div>
+  </div>
+</div>
+
+<p class="note">Semua bukti transaksi otomatis dikompres sebelum diunggah · Data tersimpan aman di Supabase</p>
+
+<!-- MODAL TRANSAKSI -->
+<div id="overlay" class="overlay hidden">
+  <div class="modal">
+    <div class="modal-hd"><h2 id="mTitle">Tambah Transaksi</h2><button class="x" onclick="closeModal()">×</button></div>
+    <form id="formTx" onsubmit="submitTx(event)">
+      <div class="modal-bd">
+        <div class="row2">
+          <div class="field"><label>Tanggal</label><input type="date" name="tanggal" required></div>
+          <div class="field"><label>Jenis</label><select name="jenis" required><option value="masuk">Pemasukan</option><option value="keluar">Pengeluaran</option></select></div>
+        </div>
+        <div class="field"><label>Uraian Transaksi</label><input name="uraian" required placeholder="mis. Pembelian semen & pasir"></div>
+        <div class="row2">
+          <div class="field"><label>Nominal (Rp)</label><input type="number" name="nominal" required min="0" placeholder="0"></div>
+          <div class="field"><label>Jenis Pajak</label><select name="pajak"></select></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Nominal Pajak (Rp)</label><input type="number" name="pajak_nominal" min="0" placeholder="0"></div>
+          <div class="field"><label>Nama Toko</label><select name="nama_toko" onchange="onTokoChange(event)"></select></div>
+        </div>
+        <div class="field" id="tokoLainWrap" style="display:none"><label>Nama Toko Lain</label><input name="nama_toko_lain" placeholder="Ketik nama toko baru"></div>
+        <div class="field"><label>Penanggung Jawab</label><select name="penanggung_jawab" required></select></div>
+        <div class="field"><label>Bukti (gambar)</label><input type="file" name="bukti" accept="image/*" onchange="onPickFile(event)"><div class="hint" id="compressInfo"></div></div>
+        <div class="field"><label>Keterangan</label><textarea name="keterangan" rows="2" placeholder="opsional"></textarea></div>
+      </div>
+      <div class="modal-ft">
+        <button type="button" class="btn" onclick="closeModal()">Batal</button>
+        <button type="submit" id="btnSimpan" class="btn btn-primary">Simpan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL LOGIN -->
+<div id="loginOverlay" class="overlay hidden">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-hd"><h2>Masuk Pengelola</h2><button class="x" onclick="document.getElementById('loginOverlay').classList.add('hidden')">×</button></div>
+    <form onsubmit="doLogin(event)">
+      <div class="modal-bd">
+        <div class="field"><label>Email</label><input type="email" name="email" required></div>
+        <div class="field"><label>Password</label><input type="password" name="password" required></div>
+        <div class="hint" id="loginErr" style="color:var(--out)"></div>
+      </div>
+      <div class="modal-ft"><button type="submit" class="btn btn-primary">Masuk</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- SCRIPTS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/master.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/compress.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/transactions.js"></script>
+<script src="js/export.js"></script>
+<script src="js/print.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>

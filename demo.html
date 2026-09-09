@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEMO · Laporan Dana Revitalisasi SMK 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="printRoot"></div>
+<header>
+  <div class="wrap hd-top">
+    <div class="brand">
+      <div class="crest"><img src="assets/logo.png" alt="Logo SMKN 3 Kepulauan Selayar"></div>
+      <div><h1>Laporan Dana Bantuan Revitalisasi SMK</h1><p id="sekolahName">Memuat…</p></div>
+    </div>
+    <div class="hd-right">
+      <span id="authBadge">Tampilan Publik</span>
+      <button id="btnLogin" class="hd-btn">Masuk Pengelola</button>
+      <button id="btnLogout" class="hd-btn" style="display:none">Keluar</button>
+    </div>
+  </div>
+</header>
+<section class="summary">
+  <div class="card pagu"><div class="lbl">Pagu Anggaran <button class="chip" data-edit-only onclick="ubahPagu()">Ubah</button></div><div class="val num" id="vPagu">Rp 0</div><div class="prog"><i id="progBar" style="width:0%"></i></div><div class="prog-lbl" id="progLbl">Terserap 0%</div></div>
+  <div class="card in-c"><div class="lbl">Total Pemasukan (Saldo Kas Bendahara)</div><div class="val num" id="vMasuk">Rp 0</div><div class="sub"><div class="lbl">Sisa Saldo Bank</div><div class="val num" id="vBank">Rp 0</div></div></div>
+  <div class="card out-c"><div class="lbl">Total Pengeluaran</div><div class="val num" id="vKeluar">Rp 0</div><div class="sub"><div class="lbl">Pajak Dipungut</div><div class="val num" id="vPajak">Rp 0</div></div></div>
+  <div class="card bal-c"><div class="lbl">Saldo Akhir</div><div class="val num" id="vSaldo">Rp 0</div><div class="sub"><div class="lbl">Total Transaksi</div><div class="val num" id="vJumlah">0</div></div></div>
+</section>
+<div class="toolbar">
+  <select id="selBulan"><option value="all">Semua Bulan</option><option value="2026-09">September 2026</option><option value="2026-10">Oktober 2026</option></select>
+  <input id="inpCari" class="search" placeholder="Cari uraian, toko, penanggung jawab…">
+  <button id="btnExcel" class="btn"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H4zM12 16v4M8 20h8"/></svg> Ekspor Excel</button>
+  <button id="btnCetak" class="btn"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4v-6h16v6h-2M8 14h8v7H8z"/></svg> Cetak</button>
+  <button class="btn btn-primary" data-edit-only onclick="openAdd()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Tambah Transaksi</button>
+</div>
+<div class="table-wrap"><div class="tbl-card"><div class="tbl-scroll"><table>
+  <thead><tr><th>No</th><th>Tanggal</th><th>Uraian Transaksi</th><th class="r">Pemasukan<span class="th-rp"> (Rp)</span></th><th class="r">Pengeluaran<span class="th-rp"> (Rp)</span></th><th class="r">Saldo<span class="th-rp"> (Rp)</span></th><th>Pajak</th><th>Nama Toko</th><th>Penanggung Jawab</th><th>Keterangan</th><th>Bukti</th><th>Aksi</th></tr></thead>
+  <tbody id="tbody"></tbody>
+</table></div><div class="foot"><span id="footInfo">—</span><span>MODE DEMO · data hanya di browser</span></div><div id="pagination" class="pagination"></div></div></div>
+<p class="note">DEMO tanpa Supabase · klik "Masuk Pengelola" (email/password apa saja) untuk mencoba mode edit</p>
+
+<div id="overlay" class="overlay hidden"><div class="modal">
+  <div class="modal-hd"><h2 id="mTitle">Tambah Transaksi</h2><button class="x" onclick="closeModal()">×</button></div>
+  <form id="formTx" onsubmit="submitTx(event)"><div class="modal-bd">
+    <div class="row2"><div class="field"><label>Tanggal</label><input type="date" name="tanggal" required></div><div class="field"><label>Jenis</label><select name="jenis" required><option value="masuk">Pemasukan</option><option value="keluar">Pengeluaran</option></select></div></div>
+    <div class="field"><label>Uraian Transaksi</label><input name="uraian" required></div>
+    <div class="row2"><div class="field"><label>Nominal (Rp)</label><input type="number" name="nominal" required min="0"></div><div class="field"><label>Jenis Pajak</label><select name="pajak"></select></div></div>
+    <div class="row2"><div class="field"><label>Nominal Pajak (Rp)</label><input type="number" name="pajak_nominal" min="0"></div><div class="field"><label>Nama Toko</label><select name="nama_toko" onchange="onTokoChange(event)"></select></div></div>
+    <div class="field" id="tokoLainWrap" style="display:none"><label>Nama Toko Lain</label><input name="nama_toko_lain" placeholder="Ketik nama toko baru"></div>
+    <div class="field"><label>Penanggung Jawab</label><select name="penanggung_jawab" required></select></div>
+    <div class="field"><label>Bukti (gambar)</label><input type="file" name="bukti" accept="image/*" onchange="onPickFile(event)"><div class="hint" id="compressInfo"></div></div>
+    <div class="field"><label>Keterangan</label><textarea name="keterangan" rows="2"></textarea></div>
+  </div><div class="modal-ft"><button type="button" class="btn" onclick="closeModal()">Batal</button><button type="submit" id="btnSimpan" class="btn btn-primary">Simpan</button></div></form>
+</div></div>
+
+<div id="loginOverlay" class="overlay hidden"><div class="modal" style="max-width:400px">
+  <div class="modal-hd"><h2>Masuk Pengelola</h2><button class="x" onclick="document.getElementById('loginOverlay').classList.add('hidden')">×</button></div>
+  <form onsubmit="doLogin(event)"><div class="modal-bd"><div class="field"><label>Email</label><input type="email" name="email" required value="demo@smk.id"></div><div class="field"><label>Password</label><input type="password" name="password" required value="demo"></div><div class="hint" id="loginErr" style="color:var(--out)"></div></div><div class="modal-ft"><button type="submit" class="btn btn-primary">Masuk</button></div></form>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/master.js"></script>
+<script>
+// ===== MOCK BACKEND (pengganti Supabase untuk demo) =====
+let DEMO_USER=null;
+const DB={
+  pengaturan:{id:1,nama_sekolah:"SMKN 3 Kepulauan Selayar",tahun:2026,pagu_anggaran:412495900},
+  transaksi:[
+    {id:"1",tanggal:"2026-09-07",uraian:"Penarikan 1 Dana Revitalisasi",jenis:"masuk",nominal:60000000,pajak:"tanpa",pajak_nominal:0,nama_toko:null,penanggung_jawab:"Akmal Iskandar, S.Pi",bukti_url:null,keterangan:null},
+    {id:"2",tanggal:"2026-09-08",uraian:"Pembelian Semen & Pasir",jenis:"keluar",nominal:3450000,pajak:"ppn11",pajak_nominal:342000,nama_toko:"Toko Bangunan Jaya",penanggung_jawab:"Edwar Agus, S.Pd",bukti_url:null,keterangan:"20 sak semen"},
+    {id:"3",tanggal:"2026-09-09",uraian:"Upah Tukang Minggu 1",jenis:"keluar",nominal:2100000,pajak:"pph21_5",pajak_nominal:105000,nama_toko:null,penanggung_jawab:"Zul Fikar, S.Pd",bukti_url:null,keterangan:null},
+    {id:"4",tanggal:"2026-09-10",uraian:"Pembelian Cat & Kuas",jenis:"keluar",nominal:1226000,pajak:"ppn11",pajak_nominal:121000,nama_toko:"Sinar Cat",penanggung_jawab:"Muhadir, S.Pi",bukti_url:null,keterangan:null},
+    {id:"5",tanggal:"2026-09-12",uraian:"Sewa Alat Molen",jenis:"keluar",nominal:1400000,pajak:"tanpa",pajak_nominal:0,nama_toko:"CV Sewa Alat",penanggung_jawab:"Syahrul Raja, S.Pd",bukti_url:null,keterangan:"2 hari"},
+    {id:"6",tanggal:"2026-09-13",uraian:"Pembelian Besi Beton",jenis:"keluar",nominal:5200000,pajak:"ppn11",pajak_nominal:515000,nama_toko:"Toko Besi Makmur",penanggung_jawab:"Edwar Agus, S.Pd",bukti_url:null,keterangan:"30 batang"},
+    {id:"7",tanggal:"2026-09-14",uraian:"Upah Tukang Minggu 2",jenis:"keluar",nominal:2100000,pajak:"pph21_5",pajak_nominal:105000,nama_toko:null,penanggung_jawab:"Zul Fikar, S.Pd",bukti_url:null,keterangan:"5 orang"},
+    {id:"8",tanggal:"2026-09-15",uraian:"Instalasi Listrik",jenis:"keluar",nominal:3800000,pajak:"pph23",pajak_nominal:76000,nama_toko:"Toko Listrik Terang",penanggung_jawab:"Muhadir, S.Pi",bukti_url:null,keterangan:null},
+    {id:"9",tanggal:"2026-09-16",uraian:"Pembelian Keramik",jenis:"keluar",nominal:4500000,pajak:"ppn11",pajak_nominal:446000,nama_toko:"Toko Bangunan Jaya",penanggung_jawab:"Edwar Agus, S.Pd",bukti_url:null,keterangan:"60 dus"},
+    {id:"10",tanggal:"2026-09-18",uraian:"Penarikan 2 Dana Revitalisasi",jenis:"masuk",nominal:50000000,pajak:"tanpa",pajak_nominal:0,nama_toko:null,penanggung_jawab:"Akmal Iskandar, S.Pi",bukti_url:null,keterangan:"Termin 2"},
+    {id:"11",tanggal:"2026-09-19",uraian:"Pembelian Pintu & Kusen",jenis:"keluar",nominal:6700000,pajak:"ppn11",pajak_nominal:664000,nama_toko:"Toko Bangunan Jaya",penanggung_jawab:"Edwar Agus, S.Pd",bukti_url:null,keterangan:null},
+    {id:"12",tanggal:"2026-09-20",uraian:"Upah Tukang Minggu 3",jenis:"keluar",nominal:2100000,pajak:"pph21_6",pajak_nominal:126000,nama_toko:null,penanggung_jawab:"Zul Fikar, S.Pd",bukti_url:null,keterangan:null},
+    {id:"13",tanggal:"2026-09-22",uraian:"Konsumsi Rapat Progres",jenis:"keluar",nominal:850000,pajak:"tanpa",pajak_nominal:0,nama_toko:null,penanggung_jawab:"Syahrul Raja, S.Pd",bukti_url:null,keterangan:"15 orang"},
+    {id:"14",tanggal:"2026-09-24",uraian:"Pembelian Genteng",jenis:"keluar",nominal:3200000,pajak:"ppn11",pajak_nominal:317000,nama_toko:"Toko Bangunan Jaya",penanggung_jawab:"Muhadir, S.Pi",bukti_url:null,keterangan:null},
+    {id:"15",tanggal:"2026-09-26",uraian:"Honor Pengawas Proyek",jenis:"keluar",nominal:2500000,pajak:"pph21_5",pajak_nominal:125000,nama_toko:null,penanggung_jawab:"Drs. H. Muhammad Nur, M.M.",bukti_url:null,keterangan:"1 bulan"}
+  ]
+};
+const uid=()=>Math.random().toString(36).slice(2);
+window.getPengaturan=async()=>({...DB.pengaturan});
+window.setPagu=async(n)=>{DB.pengaturan.pagu_anggaran=n;};
+window.fetchTransaksi=async(bulan="all")=>{let r=[...DB.transaksi].sort((a,b)=>a.tanggal.localeCompare(b.tanggal));if(bulan!=="all")r=r.filter(x=>x.tanggal.startsWith(bulan));return r;};
+window.addTransaksi=async(t)=>{DB.transaksi.push({id:uid(),bukti_url:null,...t});};
+window.updateTransaksi=async(id,t)=>{const i=DB.transaksi.findIndex(x=>x.id===id);DB.transaksi[i]={...DB.transaksi[i],...t};};
+window.deleteTransaksi=async(id)=>{DB.transaksi=DB.transaksi.filter(x=>x.id!==id);};
+window.uploadBukti=async(file)=>{const {blob}=await compressImage(file);return {url:URL.createObjectURL(blob),size:blob.size,original:file.size};};
+window.isPengelola=()=>!!DEMO_USER;
+window.login=async(e)=>{DEMO_USER={email:e};renderAuthState();};
+window.logout=async()=>{DEMO_USER=null;renderAuthState();loadTransaksi();};
+function renderAuthState(){const on=!!DEMO_USER;document.querySelectorAll("[data-edit-only]").forEach(el=>el.style.display=on?"":"none");const b=document.getElementById("authBadge");b.textContent=on?"Mode Pengelola":"Tampilan Publik";b.classList.toggle("on",on);document.getElementById("btnLogin").style.display=on?"none":"";document.getElementById("btnLogout").style.display=on?"":"none";}
+window.hitungRingkasan=(rows,pagu)=>{let masuk=0,keluar=0,pajak=0,saldo=0;const withSaldo=rows.map(r=>{if(r.jenis==="masuk"){masuk+=r.nominal;saldo+=r.nominal;}else{keluar+=r.nominal;saldo-=r.nominal;}pajak+=r.pajak_nominal||0;return{...r,saldoBerjalan:saldo};});return{rows:withSaldo,masuk,keluar,pajak,saldoAkhir:masuk-keluar,sisaBank:pagu-keluar,serapan:pagu?(keluar/pagu)*100:0,jumlah:rows.length};};
+</script>
+<script src="js/compress.js"></script>
+<script src="js/export.js"></script>
+<script src="js/ui.js"></script>
+<script>renderAuthState();</script>
+</body>
+</html>
