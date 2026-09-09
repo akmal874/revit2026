@@ -236,6 +236,8 @@ svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.9;stroke
     line-height:1.25;
     text-align:left
   }
+  .pr-table{border-bottom:0.75pt solid #000}
+  .pr-table tbody tr:last-child td{border-bottom:0.75pt solid #000}
   .pr-table thead{display:table-header-group}
   .pr-table thead th{
     background:#2b382f;color:#fff;

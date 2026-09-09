@@ -19,7 +19,7 @@ const pajakTag = (p) => (p==="tanpa" || !p)
   ? '<span class="tag tag-np">Tanpa Pajak</span>'
   : `<span class="tag tag-tax">${window.pajakLabel(p)}</span>`;
 
-let STATE = { pengaturan:null, rows:[], bulan:"all", cari:"", page:1, perPage:10 };
+let STATE = { pengaturan:null, rows:[], bulan:"all", cari:"", page:1, perPage:(window.innerWidth <= 640 ? 5 : 10) };
 
 async function loadTransaksi() {
   STATE.pengaturan = await getPengaturan();
@@ -50,7 +50,6 @@ function renderSummary(R, p){
   document.getElementById("vKeluar").textContent = rp(R.keluar);
   document.getElementById("vSaldo").textContent = rp(R.saldoAkhir);
   document.getElementById("vBank").textContent = rp(R.sisaBank);
-  document.getElementById("vKas").textContent = rp(R.kasBendahara);
   document.getElementById("vPajak").textContent = rp(R.pajak);
   document.getElementById("vJumlah").textContent = R.jumlah;
   const pct = Math.min(R.serapan,100);
@@ -298,5 +297,15 @@ window.addEventListener("DOMContentLoaded", async ()=>{
       `<tr><td colspan="12" class="empty">Gagal memuat data: ${err.message}.<br>
        Periksa kredensial di <code>js/config.js</code> dan pastikan tabel Supabase sudah dibuat (jalankan <code>sql/setup.sql</code>).</td></tr>`;
     console.error(err);
+  }
+});
+
+// Sesuaikan jumlah transaksi per halaman berdasarkan lebar layar
+window.addEventListener("resize", () => {
+  const target = window.innerWidth <= 640 ? 5 : 10;
+  if (STATE.perPage !== target) {
+    STATE.perPage = target;
+    STATE.page = 1;
+    if (STATE.rows.length) renderTable();
   }
 });
