@@ -16,14 +16,14 @@ window.MASTER = {
   toko: ["Toko Kawan Baru", "Toko Sinar Jaya", "Toko Cipta Jaya"],
 
   // Jenis pajak: value dipakai sistem, label ditampilkan
-  pajak: [
-    { value: "tanpa", label: "Tanpa Pajak" },
-    { value: "ppn11", label: "PPN 11%" },
-    { value: "pph21_5", label: "PPh 21 5%" },
-    { value: "pph21_6", label: "PPh 21 6%" },
-    { value: "pph22", label: "PPh 22" },
-    { value: "pph23", label: "PPh 23" },
-    { value: "pph4", label: "PPh 4" },
+    pajak: [
+    { value: "tanpa", label: "Tanpa Pajak", rate: 0 },
+    { value: "ppn11", label: "PPN 11%", rate: 0.11 },
+    { value: "pph21_5", label: "PPh 21 5%", rate: 0.05 },
+    { value: "pph21_6", label: "PPh 21 6%", rate: 0.06 },
+    { value: "pph22", label: "PPh 22", rate: null },
+    { value: "pph23", label: "PPh 23", rate: null },
+    { value: "pph4", label: "PPh 4", rate: null },
   ],
 };
 
@@ -31,4 +31,10 @@ window.MASTER = {
 window.pajakLabel = (v) => {
   const f = window.MASTER.pajak.find((p) => p.value === v);
   return f ? f.label : "Tanpa Pajak";
+};
+
+// ambil rate pajak (null = manual)
+window.pajakRate = (v) => {
+  const f = window.MASTER.pajak.find((p) => p.value === v);
+  return f ? f.rate : 0;
 };

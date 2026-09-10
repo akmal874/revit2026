@@ -175,13 +175,55 @@ function openModal(data=null){
     f.keterangan.value = data.keterangan || "";
   }
   document.getElementById("compressInfo").textContent = "";
+  // pasang listener pajak otomatis (nominal & pilihan pajak)
+  f.nominal.oninput = hitungPajakOtomatis;
+  f.pajak.onchange = hitungPajakOtomatis;
+  hitungPajakOtomatis(); // sinkronkan saat modal dibuka (termasuk mode edit)
   document.getElementById("overlay").classList.remove("hidden");
 }
 function closeModal(){ document.getElementById("overlay").classList.add("hidden"); }
 
+// Hitung nominal pajak otomatis dari nominal transaksi × rate
+function hitungPajakOtomatis(){
+  const f = document.getElementById("formTx");
+  const rate = window.pajakRate(f.pajak.value);
+  const nominal = parseInt(f.nominal.value || 0, 10) || 0;
+  if(rate === null){
+    // pajak tanpa persentase tetap → biarkan user isi manual
+    f.pajak_nominal.readOnly = false;
+    return;
+  }
+  f.pajak_nominal.readOnly = true; // dikunci karena dihitung otomatis
+  f.pajak_nominal.value = Math.round(nominal * rate);
+}
+window.hitungPajakOtomatis = hitungPajakOtomatis;
+
 async function submitTx(e){
   e.preventDefault();
   const f = e.target;
+
+  // Validasi: total pemasukan tidak boleh melebihi pagu
+  const jenisBaru = f.jenis.value;
+  const nominalBaru = parseInt(f.nominal.value, 10) || 0;
+  if(jenisBaru === "masuk"){
+    const pagu = STATE.pengaturan?.pagu_anggaran || 0;
+    const editId = f.dataset.id; // kecualikan baris yang sedang diedit
+    const masukLain = STATE.rows
+      .filter(r => r.jenis === "masuk" && String(r.id) !== String(editId))
+      .reduce((s, r) => s + (r.nominal || 0), 0);
+    const totalMasuk = masukLain + nominalBaru;
+    if(pagu > 0 && totalMasuk > pagu){
+      const lebih = totalMasuk - pagu;
+      const ok = confirm(
+        `⚠️ Total penarikan (Rp ${totalMasuk.toLocaleString("id-ID")}) ` +
+        `melebihi pagu anggaran (Rp ${pagu.toLocaleString("id-ID")}) ` +
+        `sebesar Rp ${lebih.toLocaleString("id-ID")}.\n\n` +
+        `Lanjutkan menyimpan?`
+      );
+      if(!ok) return; // batal simpan
+    }
+  }
+
   const btn = document.getElementById("btnSimpan");
   btn.disabled = true; btn.textContent = "Menyimpan…";
   try{
@@ -192,6 +234,7 @@ async function submitTx(e){
       const up = await uploadBukti(file);
       bukti_url = up.url;
     }
+
     const payload = {
       tanggal: f.tanggal.value,
       uraian: f.uraian.value,
