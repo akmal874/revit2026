@@ -163,6 +163,24 @@
   </div>
 </div>
 
+<!-- Dialog custom (pengganti alert/confirm/prompt) -->
+<div id="dlgOverlay" class="dlg-overlay">
+  <div class="dlg-box" role="dialog" aria-modal="true">
+    <div class="dlg-head">
+      <span class="dlg-icon" id="dlgIcon"></span>
+      <h3 id="dlgTitle">Konfirmasi</h3>
+    </div>
+    <div class="dlg-body" id="dlgBody"></div>
+    <div class="dlg-input-wrap hidden" id="dlgInputWrap">
+      <input type="text" id="dlgInput" autocomplete="off">
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn" id="dlgCancel">Batal</button>
+      <button type="button" class="btn btn-primary" id="dlgOk">Oke</button>
+    </div>
+  </div>
+</div>
+
 <!-- SCRIPTS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>

@@ -34,6 +34,56 @@ function hideLoading(){
 window.showLoading = showLoading;
 window.hideLoading = hideLoading;
 
+// ---- Dialog custom (pengganti alert/confirm/prompt) ----
+function showDialog({ title, body, icon="ask", input=null, okText="Oke", cancelText="Batal", showCancel=true }){
+  return new Promise((resolve)=>{
+    const ov = document.getElementById("dlgOverlay");
+    const iconEl = document.getElementById("dlgIcon");
+    const inpWrap = document.getElementById("dlgInputWrap");
+    const inp = document.getElementById("dlgInput");
+    const btnOk = document.getElementById("dlgOk");
+    const btnCancel = document.getElementById("dlgCancel");
+
+    document.getElementById("dlgTitle").textContent = title || "Konfirmasi";
+    document.getElementById("dlgBody").textContent = body || "";
+    iconEl.className = "dlg-icon " + icon;
+    iconEl.textContent = icon === "warn" ? "!" : icon === "info" ? "i" : "?";
+
+    if(input !== null){
+      inpWrap.classList.remove("hidden");
+      inp.value = input;
+    } else {
+      inpWrap.classList.add("hidden");
+    }
+    btnOk.textContent = okText;
+    btnCancel.textContent = cancelText;
+    btnCancel.style.display = showCancel ? "" : "none";
+
+    ov.classList.add("show");
+    if(input !== null) setTimeout(()=>inp.focus(), 60); else btnOk.focus();
+
+    const cleanup = ()=>{
+      ov.classList.remove("show");
+      btnOk.onclick = null; btnCancel.onclick = null;
+      ov.onclick = null; inp.onkeydown = null;
+    };
+    const done = (val)=>{ cleanup(); resolve(val); };
+
+    btnOk.onclick = ()=> done(input !== null ? inp.value : true);
+    btnCancel.onclick = ()=> done(input !== null ? null : false);
+    ov.onclick = (e)=>{ if(e.target === ov) done(input !== null ? null : false); };
+    inp.onkeydown = (e)=>{ if(e.key === "Enter") done(inp.value); };
+  });
+}
+// pembungkus praktis
+const uiAlert   = (body, title="Informasi", icon="info") =>
+  showDialog({ title, body, icon, showCancel:false });
+const uiConfirm = (body, title="Konfirmasi", icon="ask") =>
+  showDialog({ title, body, icon });
+const uiPrompt  = (body, def="", title="Masukkan Data") =>
+  showDialog({ title, body, icon:"ask", input:def });
+window.showDialog = showDialog;
+
 async function loadTransaksi() {
   STATE.pengaturan = await getPengaturan();
   const raw = await fetchTransaksi(STATE.bulan);
@@ -242,11 +292,12 @@ async function submitTx(e){
     const totalMasuk = masukLain + nominalBaru;
     if(pagu > 0 && totalMasuk > pagu){
       const lebih = totalMasuk - pagu;
-      const ok = confirm(
-        `⚠️ Total penarikan (Rp ${totalMasuk.toLocaleString("id-ID")}) ` +
+      const ok = await uiConfirm(
+        `Total penarikan (Rp ${totalMasuk.toLocaleString("id-ID")}) ` +
         `melebihi pagu anggaran (Rp ${pagu.toLocaleString("id-ID")}) ` +
         `sebesar Rp ${lebih.toLocaleString("id-ID")}.\n\n` +
-        `Lanjutkan menyimpan?`
+        `Lanjutkan menyimpan?`,
+        "Melebihi Pagu", "warn"
       );
       if(!ok) return; // batal simpan
     }
@@ -283,7 +334,7 @@ async function submitTx(e){
 
     closeModal();
     await loadTransaksi();
-  }catch(err){ alert("Gagal menyimpan: " + err.message); }
+  }catch(err){ await uiAlert("Gagal menyimpan: " + err.message, "Gagal", "warn"); }
   finally{ hideLoading(); btn.disabled=false; btn.textContent="Simpan"; }
 }
 
@@ -295,10 +346,14 @@ async function hapus(id){
       `Jenis   : ${r.jenis === "masuk" ? "Pemasukan" : "Pengeluaran"}\n` +
       `Nominal : Rp ${(r.nominal||0).toLocaleString("id-ID")}`
     : "Transaksi ini";
-  if(!confirm(`Hapus transaksi berikut?\n\n${detail}\n\nTindakan tidak bisa dibatalkan.`)) return;
+  const ok = await uiConfirm(
+    `Hapus transaksi berikut?\n\n${detail}\n\nTindakan tidak bisa dibatalkan.`,
+    "Hapus Transaksi", "warn"
+  );
+  if(!ok) return;
   showLoading("Menghapus…");
   try{ await deleteTransaksi(id); await loadTransaksi(); }
-  catch(err){ alert("Gagal menghapus: "+err.message); }
+  catch(err){ await uiAlert("Gagal menghapus: " + err.message, "Gagal", "warn"); }
   finally{ hideLoading(); }
 }
 
@@ -315,12 +370,12 @@ async function onPickFile(e){
 // ---- Pagu ----
 async function ubahPagu(){
   const cur = STATE.pengaturan?.pagu_anggaran || 0;
-  const val = prompt("Masukkan Pagu Anggaran (angka saja):", cur);
-  if(val===null) return;
-  const n = parseInt(val.replace(/\D/g,""),10);
-  if(isNaN(n)) return alert("Angka tidak valid.");
+  const val = await uiPrompt("Masukkan Pagu Anggaran (angka saja):", String(cur), "Ubah Pagu Anggaran");
+  if(val === null) return;
+  const n = parseInt(String(val).replace(/\D/g,""),10);
+  if(isNaN(n)) return uiAlert("Angka tidak valid.", "Gagal", "warn");
   try{ await setPagu(n); await loadTransaksi(); }
-  catch(err){ alert("Gagal: "+err.message); }
+  catch(err){ await uiAlert("Gagal: " + err.message, "Gagal", "warn"); }
 }
 
 // ---- Lightbox ----
@@ -386,10 +441,13 @@ function toggleRekap(){
 window.toggleRekap = toggleRekap;
 
 // ---- Unduh PDF (via dialog cetak → Save as PDF) ----
-function unduhPDF(){
+async function unduhPDF(){
   const flag = "pdfHintShown";
   if(!sessionStorage.getItem(flag)){
-    alert('Pada dialog yang muncul, pilih tujuan "Simpan sebagai PDF" / "Save as PDF", lalu klik Simpan.');
+    await uiAlert(
+      'Pada dialog cetak, pilih tujuan "Simpan sebagai PDF" / "Save as PDF", lalu klik Simpan.',
+      "Cara Unduh PDF", "info"
+    );
     sessionStorage.setItem(flag, "1");
   }
   cetakLaporan(); // fungsi cetak yang sudah ada di print.js
