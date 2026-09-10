@@ -19,7 +19,7 @@ const pajakTag = (p) => (p==="tanpa" || !p)
   ? '<span class="tag tag-np">Tanpa Pajak</span>'
   : `<span class="tag tag-tax">${window.pajakLabel(p)}</span>`;
 
-let STATE = { pengaturan:null, rows:[], bulan:"all", cari:"", page:1, perPage:(window.innerWidth <= 640 ? 5 : 10) };
+let STATE = { pengaturan:null, rows:[], bulan:"all", cari:"", dari:"", sampai:"", jenis:"all", page:1, perPage:(window.innerWidth <= 640 ? 5 : 10) };
 
 // ---- Indikator loading global ----
 function showLoading(text="Memproses…"){
@@ -46,13 +46,22 @@ async function loadTransaksi() {
 window.loadTransaksi = loadTransaksi;
 
 function applyFilter(rows){
+  let out = rows;
+  // filter jenis
+  if(STATE.jenis !== "all") out = out.filter(r => r.jenis === STATE.jenis);
+  // filter rentang tanggal
+  if(STATE.dari)   out = out.filter(r => r.tanggal >= STATE.dari);
+  if(STATE.sampai) out = out.filter(r => r.tanggal <= STATE.sampai);
+  // pencarian teks
   const q = STATE.cari.toLowerCase().trim();
-  if(!q) return rows;
-  return rows.filter(r =>
-    (r.uraian||"").toLowerCase().includes(q) ||
-    (r.nama_toko||"").toLowerCase().includes(q) ||
-    (r.penanggung_jawab||"").toLowerCase().includes(q) ||
-    (r.keterangan||"").toLowerCase().includes(q));
+  if(q){
+    out = out.filter(r =>
+      (r.uraian||"").toLowerCase().includes(q) ||
+      (r.nama_toko||"").toLowerCase().includes(q) ||
+      (r.penanggung_jawab||"").toLowerCase().includes(q) ||
+      (r.keterangan||"").toLowerCase().includes(q));
+  }
+  return out;
 }
 
 function renderSummary(R, p){
@@ -117,6 +126,12 @@ function renderTable(printAll=false){
     `Menampilkan ${from}–${to} dari ${filtered.length} transaksi` +
     (filtered.length !== total ? ` (difilter dari ${total})` : "");
   renderPagination(totalPages);
+
+  // jika panel rekap sedang terbuka, perbarui isinya mengikuti filter
+  const rekapEl = document.getElementById("rekapPanel");
+  if(rekapEl && !rekapEl.classList.contains("hidden")){
+    rekapEl.innerHTML = buildRekap();
+  }
 }
 
 function renderPagination(totalPages){
@@ -237,7 +252,7 @@ async function submitTx(e){
     }
   }
 
-    const btn = document.getElementById("btnSimpan");
+  const btn = document.getElementById("btnSimpan");
   btn.disabled = true; btn.textContent = "Menyimpan…";
   showLoading("Menyimpan transaksi…");
   try{
@@ -268,12 +283,19 @@ async function submitTx(e){
 
     closeModal();
     await loadTransaksi();
-    }catch(err){ alert("Gagal menyimpan: " + err.message); }
+  }catch(err){ alert("Gagal menyimpan: " + err.message); }
   finally{ hideLoading(); btn.disabled=false; btn.textContent="Simpan"; }
 }
 
 async function hapus(id){
-  if(!confirm("Hapus transaksi ini? Tindakan tidak bisa dibatalkan.")) return;
+  const r = STATE.rows.find(x => String(x.id) === String(id));
+  const detail = r
+    ? `Tanggal : ${fmtTgl(r.tanggal).cetak}\n` +
+      `Uraian  : ${r.uraian}\n` +
+      `Jenis   : ${r.jenis === "masuk" ? "Pemasukan" : "Pengeluaran"}\n` +
+      `Nominal : Rp ${(r.nominal||0).toLocaleString("id-ID")}`
+    : "Transaksi ini";
+  if(!confirm(`Hapus transaksi berikut?\n\n${detail}\n\nTindakan tidak bisa dibatalkan.`)) return;
   showLoading("Menghapus…");
   try{ await deleteTransaksi(id); await loadTransaksi(); }
   catch(err){ alert("Gagal menghapus: "+err.message); }
@@ -309,6 +331,71 @@ function showImg(url){
   document.body.appendChild(lb);
 }
 
+// ---- Rekap pengeluaran per bulan & per jenis pajak ----
+function buildRekap(){
+  const rows = applyFilter(STATE.rows).filter(r => r.jenis === "keluar");
+  const namaBulan = (kunci)=>{
+    const [y,m] = kunci.split("-");
+    return new Date(y, m-1, 1).toLocaleDateString("id-ID",{month:"long",year:"numeric"});
+  };
+
+  // per bulan
+  const perBulan = {};
+  rows.forEach(r=>{ const k = (r.tanggal||"").slice(0,7); perBulan[k]=(perBulan[k]||0)+(r.nominal||0); });
+  const bulanKeys = Object.keys(perBulan).sort();
+
+  // per jenis pajak
+  const perPajak = {};
+  rows.forEach(r=>{ const k = r.pajak || "tanpa"; perPajak[k]=(perPajak[k]||0)+(r.nominal||0); });
+
+  const totalKeluar = rows.reduce((s,r)=>s+(r.nominal||0),0);
+  const baris = (label,val)=>`<div class="rekap-row"><span>${label}</span><span class="val">${rp(val)}</span></div>`;
+
+  const bulanHtml = bulanKeys.length
+    ? bulanKeys.map(k=>baris(namaBulan(k), perBulan[k])).join("")
+    : `<div class="rekap-row"><span>Belum ada pengeluaran</span><span class="val">—</span></div>`;
+
+  const pajakHtml = Object.keys(perPajak).length
+    ? Object.keys(perPajak).map(k=>baris(window.pajakLabel(k), perPajak[k])).join("")
+    : `<div class="rekap-row"><span>Belum ada pengeluaran</span><span class="val">—</span></div>`;
+
+  return `
+    <div class="rekap-card">
+      <h4>Pengeluaran per Bulan</h4>
+      ${bulanHtml}
+      <div class="rekap-row rekap-total"><span>Total</span><span class="val">${rp(totalKeluar)}</span></div>
+    </div>
+    <div class="rekap-card">
+      <h4>Pengeluaran per Jenis Pajak</h4>
+      ${pajakHtml}
+      <div class="rekap-row rekap-total"><span>Total</span><span class="val">${rp(totalKeluar)}</span></div>
+    </div>`;
+}
+function toggleRekap(){
+  const panel = document.getElementById("rekapPanel");
+  const btn = document.getElementById("btnRekap");
+  if(panel.classList.contains("hidden")){
+    panel.innerHTML = buildRekap();
+    panel.classList.remove("hidden");
+    if(btn) btn.textContent = "Tutup Rekap";
+  } else {
+    panel.classList.add("hidden");
+    if(btn) btn.textContent = "Lihat Rekap";
+  }
+}
+window.toggleRekap = toggleRekap;
+
+// ---- Unduh PDF (via dialog cetak → Save as PDF) ----
+function unduhPDF(){
+  const flag = "pdfHintShown";
+  if(!sessionStorage.getItem(flag)){
+    alert('Pada dialog yang muncul, pilih tujuan "Simpan sebagai PDF" / "Save as PDF", lalu klik Simpan.');
+    sessionStorage.setItem(flag, "1");
+  }
+  cetakLaporan(); // fungsi cetak yang sudah ada di print.js
+}
+window.unduhPDF = unduhPDF;
+
 // ---- Login modal ----
 async function doLogin(e){
   e.preventDefault();
@@ -322,12 +409,32 @@ function onTokoChange(e){
   document.getElementById("tokoLainWrap").style.display = e.target.value==="__lain" ? "" : "none";
 }
 
-Object.assign(window,{openAdd,openEdit,closeModal,submitTx,hapus,onPickFile,ubahPagu,showImg,doLogin,onTokoChange});
+Object.assign(window,{openAdd,openEdit,closeModal,submitTx,hapus,onPickFile,ubahPagu,showImg,doLogin,onTokoChange,toggleRekap,unduhPDF});
 
 // ---- Bind toolbar ----
 window.addEventListener("DOMContentLoaded", async ()=>{
   document.getElementById("selBulan").onchange = (e)=>{ STATE.bulan=e.target.value; loadTransaksi(); };
   document.getElementById("inpCari").oninput = (e)=>{ STATE.cari=e.target.value; STATE.page=1; renderTable(); };
+
+  // filter rentang tanggal & jenis (#6)
+  document.getElementById("fltDari").onchange   = (e)=>{ STATE.dari=e.target.value; STATE.page=1; renderTable(); };
+  document.getElementById("fltSampai").onchange = (e)=>{ STATE.sampai=e.target.value; STATE.page=1; renderTable(); };
+  document.getElementById("fltJenis").onchange  = (e)=>{ STATE.jenis=e.target.value; STATE.page=1; renderTable(); };
+  document.getElementById("btnResetFilter").onclick = ()=>{
+    STATE.dari=""; STATE.sampai=""; STATE.jenis="all"; STATE.cari="";
+    document.getElementById("fltDari").value="";
+    document.getElementById("fltSampai").value="";
+    document.getElementById("fltJenis").value="all";
+    document.getElementById("inpCari").value="";
+    STATE.page=1; renderTable();
+  };
+
+  // rekap (#4) & unduh PDF (#5)
+  const btnRekap = document.getElementById("btnRekap");
+  if(btnRekap) btnRekap.onclick = toggleRekap;
+  const btnPdf = document.getElementById("btnPdf");
+  if(btnPdf) btnPdf.onclick = unduhPDF;
+
   document.getElementById("btnExcel").onclick = ()=>exportExcel(applyFilter(STATE.rows), hitungRingkasan(STATE.rows,STATE.pengaturan.pagu_anggaran), {nama_sekolah:STATE.pengaturan.nama_sekolah, pagu:STATE.pengaturan.pagu_anggaran});
   document.getElementById("btnCetak").onclick = cetakLaporan;
   document.getElementById("btnLogin").onclick = ()=>document.getElementById("loginOverlay").classList.remove("hidden");

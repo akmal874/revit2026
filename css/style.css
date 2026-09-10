@@ -280,3 +280,29 @@ svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.9;stroke
 }
 .loading-text{ font-size:14px; color:#334155; font-weight:600; text-align:center; }
 @keyframes spin{ to{ transform:rotate(360deg); } }
+
+/* ---- Panel Rekap (#4) ---- */
+.rekap-panel{
+  max-width:1200px; margin:18px auto 0; padding:0 32px;
+  display:grid; gap:16px; grid-template-columns:1fr 1fr;
+}
+.rekap-card{
+  background:var(--card); border:1px solid var(--line); border-radius:16px;
+  padding:18px 20px; box-shadow:0 12px 30px -22px rgba(18,42,43,.3);
+}
+.rekap-card h4{
+  font-family:'Sora'; font-size:14px; margin-bottom:12px; color:var(--ink);
+}
+.rekap-row{
+  display:flex; justify-content:space-between; align-items:center; gap:14px;
+  padding:8px 0; border-bottom:1px dashed var(--line); font-size:13.5px;
+}
+.rekap-row:last-child{ border-bottom:none; }
+.rekap-row .val{ font-family:'JetBrains Mono',monospace; font-weight:600; font-variant-numeric:tabular-nums; }
+.rekap-total{
+  margin-top:6px; padding-top:10px; border-top:2px solid var(--line); font-weight:700;
+}
+.rekap-total .val{ color:var(--gold); }
+
+@media(max-width:900px){ .rekap-panel{ grid-template-columns:1fr; } }
+@media(max-width:640px){ .rekap-panel{ padding:0 16px; } }
