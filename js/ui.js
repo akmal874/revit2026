@@ -21,6 +21,19 @@ const pajakTag = (p) => (p==="tanpa" || !p)
 
 let STATE = { pengaturan:null, rows:[], bulan:"all", cari:"", page:1, perPage:(window.innerWidth <= 640 ? 5 : 10) };
 
+// ---- Indikator loading global ----
+function showLoading(text="Memproses…"){
+  const el = document.getElementById("loadingOverlay");
+  if(!el) return;
+  document.getElementById("loadingText").textContent = text;
+  el.classList.add("show");
+}
+function hideLoading(){
+  document.getElementById("loadingOverlay")?.classList.remove("show");
+}
+window.showLoading = showLoading;
+window.hideLoading = hideLoading;
+
 async function loadTransaksi() {
   STATE.pengaturan = await getPengaturan();
   const raw = await fetchTransaksi(STATE.bulan);
@@ -224,13 +237,15 @@ async function submitTx(e){
     }
   }
 
-  const btn = document.getElementById("btnSimpan");
+    const btn = document.getElementById("btnSimpan");
   btn.disabled = true; btn.textContent = "Menyimpan…";
+  showLoading("Menyimpan transaksi…");
   try{
     let bukti_url = null;
     const file = f.bukti.files[0];
     if(file){
       btn.textContent = "Mengompres & mengunggah…";
+      showLoading("Mengompres & mengunggah bukti…");
       const up = await uploadBukti(file);
       bukti_url = up.url;
     }
@@ -253,14 +268,16 @@ async function submitTx(e){
 
     closeModal();
     await loadTransaksi();
-  }catch(err){ alert("Gagal menyimpan: " + err.message); }
-  finally{ btn.disabled=false; btn.textContent="Simpan"; }
+    }catch(err){ alert("Gagal menyimpan: " + err.message); }
+  finally{ hideLoading(); btn.disabled=false; btn.textContent="Simpan"; }
 }
 
 async function hapus(id){
   if(!confirm("Hapus transaksi ini? Tindakan tidak bisa dibatalkan.")) return;
+  showLoading("Menghapus…");
   try{ await deleteTransaksi(id); await loadTransaksi(); }
   catch(err){ alert("Gagal menghapus: "+err.message); }
+  finally{ hideLoading(); }
 }
 
 // preview kompres saat pilih file
