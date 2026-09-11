@@ -454,6 +454,13 @@ async function unduhPDF(){
 }
 window.unduhPDF = unduhPDF;
 
+// ---- Buka folder Google Drive arsip ----
+const DRIVE_URL = "https://drive.google.com/drive/folders/1UPgmRh4lhPn1Qi1KOd8rJSxKQZ7slwH9?usp=sharing";
+function bukaDrive(){
+  window.open(DRIVE_URL, "_blank", "noopener");
+}
+window.bukaDrive = bukaDrive;
+
 // ---- Login modal ----
 async function doLogin(e){
   e.preventDefault();
@@ -467,7 +474,7 @@ function onTokoChange(e){
   document.getElementById("tokoLainWrap").style.display = e.target.value==="__lain" ? "" : "none";
 }
 
-Object.assign(window,{openAdd,openEdit,closeModal,submitTx,hapus,onPickFile,ubahPagu,showImg,doLogin,onTokoChange,toggleRekap,unduhPDF});
+Object.assign(window,{openAdd,openEdit,closeModal,submitTx,hapus,onPickFile,ubahPagu,showImg,doLogin,onTokoChange,toggleRekap,unduhPDF,bukaDrive});
 
 // ---- Bind toolbar ----
 window.addEventListener("DOMContentLoaded", async ()=>{
@@ -492,6 +499,8 @@ window.addEventListener("DOMContentLoaded", async ()=>{
   if(btnRekap) btnRekap.onclick = toggleRekap;
   const btnPdf = document.getElementById("btnPdf");
   if(btnPdf) btnPdf.onclick = unduhPDF;
+  const btnDrive = document.getElementById("btnDrive");
+  if(btnDrive) btnDrive.onclick = bukaDrive;
 
   document.getElementById("btnExcel").onclick = ()=>exportExcel(applyFilter(STATE.rows), hitungRingkasan(STATE.rows,STATE.pengaturan.pagu_anggaran), {nama_sekolah:STATE.pengaturan.nama_sekolah, pagu:STATE.pengaturan.pagu_anggaran});
   document.getElementById("btnCetak").onclick = cetakLaporan;
